@@ -327,7 +327,7 @@ function normalizeMappingPayload(payload, options = {}) {
     expiry,
     enabled,
     isWechat,
-    qrCodeData: isWechat ? qrCodeData : null,
+    qrCodeData: qrCodeData || null,
     announcementHtml: announcementHtml || null,
     hintHtml: hintHtml || null,
   };
@@ -574,12 +574,13 @@ async function updateMapping(payload) {
     throw new AppError('映射不存在', 404, 'NOT_FOUND');
   }
 
-  const mapping = normalizeMappingPayload(payload);
+  const mapping = normalizeMappingPayload({
+    ...payload,
+    qrCodeData: payload.qrCodeData || current.qrCodeData || null,
+  });
   await ensurePathAvailable(mapping.path, originalPath);
 
-  const qrCodeData = mapping.isWechat
-    ? (mapping.qrCodeData || current.qrCodeData || null)
-    : null;
+  const qrCodeData = mapping.qrCodeData;
 
   if (mapping.isWechat && !qrCodeData) {
     throw new AppError('微信二维码必须提供原始二维码数据');

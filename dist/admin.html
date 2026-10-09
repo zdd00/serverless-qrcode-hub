@@ -863,7 +863,21 @@
       const alert = document.createElement('div');
       alert.className = `alert ${classMap[type] || classMap.error} shadow-lg`;
       alert.innerHTML = `<span>${escapeHtml(message)}</span>`;
-      elements.alertContainer.appendChild(alert);
+      const openDialog = document.querySelector('dialog[open] .modal-box');
+      if (openDialog) {
+        let feedback = openDialog.querySelector('[data-dialog-feedback]');
+        if (!feedback) {
+          feedback = document.createElement('div');
+          feedback.dataset.dialogFeedback = '';
+          feedback.className = 'sticky top-0 z-50';
+          feedback.setAttribute('role', 'alert');
+          openDialog.prepend(feedback);
+        }
+        feedback.replaceChildren(alert);
+        alert.scrollIntoView({ block: 'nearest' });
+      } else {
+        elements.alertContainer.appendChild(alert);
+      }
       setTimeout(() => {
         alert.style.opacity = '0';
         alert.style.transform = 'translateY(-6px)';
@@ -1302,7 +1316,7 @@
         expiry: elements['create-expiry'].value,
         enabled: elements['create-enabled'].checked,
         isWechat: elements['create-wechat'].checked,
-        qrCodeData: elements['create-wechat'].checked ? elements['create-qr-code-data'].value : null,
+        qrCodeData: elements['create-qr-code-data'].value || null,
         announcementHtml: getEditorHtml('create-announcement-editor', DEFAULT_ANNOUNCEMENT_HTML),
         hintHtml: getEditorHtml('create-hint-editor', DEFAULT_HINT_HTML)
       };
@@ -1319,7 +1333,7 @@
         expiry: elements['edit-expiry'].value,
         enabled: elements['edit-enabled'].checked,
         isWechat: elements['edit-wechat'].checked,
-        qrCodeData: elements['edit-wechat'].checked ? elements['edit-qr-code-data'].value : null,
+        qrCodeData: elements['edit-qr-code-data'].value || null,
         announcementHtml: getEditorHtml('edit-announcement-editor', DEFAULT_ANNOUNCEMENT_HTML),
         hintHtml: getEditorHtml('edit-hint-editor', DEFAULT_HINT_HTML)
       };
@@ -1348,6 +1362,7 @@
     }
 
     function openEditModal(item) {
+      elements['edit-modal'].querySelector('[data-dialog-feedback]')?.remove();
       elements['edit-name'].value = item.name || '';
       elements['edit-path'].value = item.path;
       elements['edit-path'].dataset.originalPath = item.path;
@@ -1437,8 +1452,8 @@
         elements['edit-save-btn'].textContent = '保存中...';
         const payload = getEditPayload();
         await request('/api/mapping', { method: 'PUT', body: payload });
-        showAlert('更新成功', 'success');
         elements['edit-modal'].close();
+        showAlert('更新成功', 'success');
         await refreshData();
       } catch (error) {
         showAlert(error.message || '更新失败');
